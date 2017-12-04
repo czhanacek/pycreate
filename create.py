@@ -101,6 +101,7 @@ FULL_MODE = 3
 COMMANDS = {
 "START":chr(128),
 "BAUD":chr(129),
+"SOFT_RESET":chr(7),
 "MODE_PASSIVE":chr(128),
 "MODE_SAFE":chr(131),
 "MODE_FULL":chr(132),
@@ -450,6 +451,24 @@ class Create:
             self.toFullMode()
         time.sleep(.25) # The recommended 200ms+ pause after mode commands.
 
+    def softReset(self):
+        '''
+        This executes a soft reset on the Create (to intiate
+        charging and reset distance and angle counters) and 
+        leaves in Passive mode
+        '''
+        # Send the soft reset opcode
+        r.send( SOFT_RESET ) 
+        # Wait for the Create to reboot
+        time.sleep(5) 
+        # Just in case it was stuck moving somewhere, stop the Create:
+        self.stop()
+        # Close the connection:
+        self._close()
+        # Reestablish the serial connection to the Create:
+        self.__init__(self.comPort, startingMode=PASSIVE_MODE)
+        self.start()
+        time.sleep(0.25) # The recommended 200ms+ pause after mode commands.
 
     def start(self):
         """ changes from OFF_MODE to PASSIVE_MODE """
@@ -494,6 +513,13 @@ class Create:
         self.serialLock.release()
         return
     
+    def flush(self):
+        """ just disconnects the serial port """
+        self.serialLock.acquire()
+        self.ser.flush()
+        self.serialLock.release()
+        return
+
     def _closeSer(self):
         """ just disconnects the serial port """
         self.serialLock.acquire()
